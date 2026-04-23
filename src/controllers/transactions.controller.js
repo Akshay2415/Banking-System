@@ -8,7 +8,7 @@ const emailService = require('../services/services.nodemailer')
  * THE 10 STEP TRANSFER FLOW:
  * 1.Validate request
  * 2.Validate Idempotency key
- * 3.Check amount status
+ * 3.Check account status
  * 4.Define sender balance from ledger
  * 5.Create transaction (PENDING)
  * 6.Create DEBIT ledger entry
@@ -45,8 +45,46 @@ async function createTransaction(req,res){
         })
     }
 
+/**
+ * 2.Validate Idempotency key
+ */
 
+    const isTransactioAlreadyExists = await transactionModel.findOne({
+        idempotencyKey : idempotencyKey
+    })
 
+    if(isTransactioAlreadyExists){
+        if(isTransactioAlreadyExists.status = "COMPLETED"){
+        return res.status(200).json({
+            message : "Transaction already proceed",
+            transaction : isTransactioAlreadyExists
+        })
+        }
+        if(isTransactioAlreadyExists.status = "PENDING"){
+            return res.status(200).json({
+                message : "Transaction is still processing",
+            })
+        }
 
-    
+        if(isTransactioAlreadyExists.status = "FAILED"){
+            return res.status(500).json({
+                message : "Transaction was failed , Please retry!",
+            })
+        }
+        if(isTransactioAlreadyExists.status = "REVERSED"){
+            return res.status(500).json({
+                message : "Transaction was reversed , Please retry!",
+            })
+        }
+    }
+
+/**
+ * 3.Check account status
+ */
+    if(fromUserAccount.status !=="ACTIVE" || toUserAccount.status !=="ACTIVE"){
+        return res.status().json({
+            message : "Both FromAccount and ToAccount must be active to process transaction"
+        })
+    }
+
 }
