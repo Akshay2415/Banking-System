@@ -1,5 +1,6 @@
 const ledgerModel = require("../models/ledger.model")
 const transactionModel = require("../models/transaction.model")
+const accountModel = require("../models/account.model")
 const emailService = require('../services/services.nodemailer')
 
 /**
@@ -17,3 +18,35 @@ const emailService = require('../services/services.nodemailer')
  * 10.Send Email notification
  */
 
+async function createTransaction(req,res){
+
+/**
+ * 1.Validate Request
+ */
+
+    const {fromAccount ,toAccount ,amount ,idempotencyKey} = req.body;
+
+    if(fromAccount || toAccount || amount || idempotencyKey)
+        return res.status(400).json({
+            message:"From account , to account, amount and idempotency key are required"
+        })
+
+        const fromUserAccount = await accountModel.findOne({
+        _id : fromAccount
+    })
+
+    const toUserAccount = await accountModel.findOne({
+        _id : toAccount
+    })
+
+    if(!fromUserAccount||toUserAccount){
+        return res.status(400).json({
+            message : "Invalid FROM or TO account"
+        })
+    }
+
+
+
+
+    
+}
