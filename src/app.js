@@ -18,6 +18,6 @@ const transactionRouter = require("./routes/transactions.route")
  */
 app.use("/api/account",accountRouter)
 app.use("/api/auth",authRouter)
-app.use("/api/transaction",transactionRouter)
+app.use("/api/transactions",transactionRouter)
 
 module.exports = app
