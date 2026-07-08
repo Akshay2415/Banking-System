@@ -12,7 +12,7 @@ const emailService = require('../services/services.nodemailer')
  * 4.Define sender balance from ledger
  * 5.Create transaction (PENDING)
  * 6.Create DEBIT ledger entry
- * 7.Creste CREDIT ledger entry
+ * 7.Create CREDIT ledger entry
  * 8.Mark transaction COMPLETED
  * 9.Commit monfoDB Session
  * 10.Send Email notification
@@ -31,7 +31,7 @@ async function createTransaction(req,res){
             message:"From account , to account, amount and idempotency key are required"
         })
 
-        const fromUserAccount = await accountModel.findOne({
+    const fromUserAccount = await accountModel.findOne({
         _id : fromAccount
     })
 
@@ -82,9 +82,20 @@ async function createTransaction(req,res){
  * 3.Check account status
  */
     if(fromUserAccount.status !=="ACTIVE" || toUserAccount.status !=="ACTIVE"){
-        return res.status().json({
+        return res.status(400).json({
             message : "Both FromAccount and ToAccount must be active to process transaction"
         })
     }
 
+
+/* 
+  4.Define sender balance from ledger
+*/
+    const balance = await fromUserAccount.getBalance();
+
+    if(balance < amount ){
+        return res.status(400).json({
+            message : `Insuffecient Balance ! Current balance is ${balance} .Requested amount is ${amount}`
+        })
+    }
 }
