@@ -2,6 +2,7 @@ const ledgerModel = require("../models/ledger.model")
 const transactionModel = require("../models/transaction.model")
 const accountModel = require("../models/account.model")
 const emailService = require('../services/services.nodemailer')
+const mongoose = require("mongoose");
 
 /**
  * -Create a new transaction
@@ -14,7 +15,7 @@ const emailService = require('../services/services.nodemailer')
  * 6.Create DEBIT ledger entry
  * 7.Create CREDIT ledger entry
  * 8.Mark transaction COMPLETED
- * 9.Commit monfoDB Session
+ * 9.Commit mongoDB Session
  * 10.Send Email notification
  */
 
@@ -95,7 +96,51 @@ async function createTransaction(req,res){
 
     if(balance < amount ){
         return res.status(400).json({
-            message : `Insuffecient Balance ! Current balance is ${balance} .Requested amount is ${amount}`
+            message : `Insuffecient Balance ! Current balance is ${balance} .
+            Requested amount is ${amount}`
         })
     }
+
+/* 
+ * 5.Create transaction (PENDING)
+   this step also consist of other 6, 7 , 8 , 9 steps 
+*/
+    const session = await mongoose.startSession();    
+    session.startTransaction();
+    // mongoDB provides transaction fuction that if transaction 
+    // is going to happen then it done completely 
+    //if an error occur then the whole transaction is going to revert back
+
+    const transaction = await transactionModel.create({
+        fromAccount,
+        toAccount,
+        amount,
+        idempotencyKey,
+        status : "PENDING"
+    }, {session}) //need to pass this parameter in transaction 
+                  //also and in ledger entry also 
+
+    const debitLedgerEntry = await ledgerModel.create({
+        account : fromAccount,
+        amount : amount,
+        transaction : transaction._id,
+        type : "DEBIT"
+    },{session})
+
+    const creditLedgerEntry = await ledgerModel.create({
+        account : toAccount,
+        amount : amount,
+        transaction : transaction._id,
+        type : "CREDIT"
+    },{session})
+
+    transaction.status = "COMPLETED";
+    await transaction.save({session})
+
+    await session.commitTransaction();
+    session.endSession();
 }
+
+/* 
+* 10.Send Email notification
+*/
