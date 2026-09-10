@@ -1,5 +1,7 @@
 const ledgerModel = require("../models/ledger.model")
-const transactionModel = require("../models/transaction.model")
+const {transactionModel }= require("../models/transaction.model")
+//curly brackets are added bcoz it is giving an error of 
+// transaction model is not constructor
 const accountModel = require("../models/account.model")
 const emailService = require('../services/services.nodemailer')
 const mongoose = require("mongoose");
@@ -28,7 +30,7 @@ async function createTransaction(req,res){
 
     const {fromAccount ,toAccount ,amount ,idempotencyKey} = req.body;
 
-    if(fromAccount || toAccount || amount || idempotencyKey)
+    if(!fromAccount || !toAccount || !amount || !idempotencyKey)
         return res.status(400).json({
             message:"From account , to account, amount and idempotency key are required"
         })
@@ -164,20 +166,35 @@ async function createInitialFundTransaction(req, res) {
         })
     }
 
-    const toUserAccout = await userModel.findOne({
+    const toUserAccount = await accountModel.findOne({
         _id : toAccount
     })
 
-    if(!toUserAccout){
+    if(!toUserAccount){
         return res.status(400).json({
             message : "Invalid Account"
         })
     }
 
-    const fromUserAccount = await userModel.findOne({
-        systemUser : true,
-        user : req.user._id
+    // const fromUserAccount = await accountModel.findOne({
+    //     systemUser : true,
+    //     user : req.user._id
+    // })
+    const systemUser = await userModel.findOne({
+         systemUser: true
     })
+
+    if (!systemUser) {
+        return res.status(400).json({
+            message: "System User not found"
+        })
+    }
+
+    const fromUserAccount = await accountModel.findOne({
+        user: systemUser._id
+    })
+
+
 
     if(!fromUserAccount){
         return res.status(400).json({
@@ -188,27 +205,27 @@ async function createInitialFundTransaction(req, res) {
     const session = await mongoose.startSession();    
     session.startTransaction();
 
-    const transaction = await transactionModel.create({
+    const transaction = new transactionModel({
         fromAccount : fromUserAccount._id,
         toAccount,
         amount,
         idempotencyKey,
         status : "PENDING"
-    }, {session}) 
+    }) 
 
-    const debitLedgerEntry = await ledgerModel.create({
+    const debitLedgerEntry = await ledgerModel.create([{
         account : fromUserAccount._id,
         amount : amount,
         transaction : transaction._id,
         type : "DEBIT"
-    },{session})
+    } ],{session})
 
-    const creditLedgerEntry = await ledgerModel.create({
+    const creditLedgerEntry = await ledgerModel.create([{
         account : toAccount,
         amount : amount,
         transaction : transaction._id,
         type : "CREDIT"
-    },{session})
+    }],{session})
 
     transaction.status = "COMPLETED";
     await transaction.save({session})
@@ -226,3 +243,5 @@ module.exports = {
     createTransaction,
     createInitialFundTransaction
 }
+
+
