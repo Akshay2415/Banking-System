@@ -24,9 +24,12 @@ const userSchema = mongoose.Schema({
     systemUser:{
         type:Boolean,
         default:false,
-        immutable:true,
+        immutable:true, 
+        //no one can change it until and unless 
+        // someone has access to database
         select:false
-    }
+    }// this systemuser is to differntiate between 
+    //normal account and system account
 },{
         timestamps:true
     }) 
