@@ -36,39 +36,6 @@ accountSchema.index({user:1 ,status:1});
 accountSchema.methods.getBalance = async function(){
 
     //aggregate pipeline -- it is a some kind of feature in mongodb that help to run a custom query 
-    //const balanceData = await ledgerModel.aggregate([
-    //     {$match : {account : this._id} },
-    //     {
-    //         $group : {
-    //             _id : null,
-    //             totalDebit : {
-    //                 $sum :{
-    //                     $cond : [
-    //                         {$ep :["$type" ,"DEBIT"]},
-    //                         "$amount",
-    //                         0
-    //                     ]
-    //                 }
-    //             },
-    //             totalCredit : {
-    //                 $sum :{
-    //                     $cond : [
-    //                         {$ep :["$type" ,"CREDIT"]},
-    //                         "$amount",
-    //                         0
-    //                     ]
-    //                 }
-    //             }
-    //         }
-    //     },
-    //     {
-    //         $project :{
-    //             _id: 0,
-    //             balance :{ $subtract : [ "totalCredit", "totalDebit" ]}
-    //         }
-    //     }
-    // ])
-
         const balanceData = await ledgerModel.aggregate([
         { $match: { account: this._id } },
         {
