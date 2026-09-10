@@ -36,24 +36,57 @@ accountSchema.index({user:1 ,status:1});
 accountSchema.methods.getBalance = async function(){
 
     //aggregate pipeline -- it is a some kind of feature in mongodb that help to run a custom query 
-    const balanceData = await ledgerModel.aggregate([
-        {$match : {accounts : this._id} },
+    //const balanceData = await ledgerModel.aggregate([
+    //     {$match : {account : this._id} },
+    //     {
+    //         $group : {
+    //             _id : null,
+    //             totalDebit : {
+    //                 $sum :{
+    //                     $cond : [
+    //                         {$ep :["$type" ,"DEBIT"]},
+    //                         "$amount",
+    //                         0
+    //                     ]
+    //                 }
+    //             },
+    //             totalCredit : {
+    //                 $sum :{
+    //                     $cond : [
+    //                         {$ep :["$type" ,"CREDIT"]},
+    //                         "$amount",
+    //                         0
+    //                     ]
+    //                 }
+    //             }
+    //         }
+    //     },
+    //     {
+    //         $project :{
+    //             _id: 0,
+    //             balance :{ $subtract : [ "totalCredit", "totalDebit" ]}
+    //         }
+    //     }
+    // ])
+
+        const balanceData = await ledgerModel.aggregate([
+        { $match: { account: this._id } },
         {
-            $group : {
-                _id : null,
-                totalDebit : {
-                    $sum :{
-                        $cond : [
-                            {$ep :["$type" ,"DEBIT"]},
+            $group: {
+                _id: null,
+                totalDebit: {
+                    $sum: {
+                        $cond: [
+                            { $eq: [ "$type", "DEBIT" ] },
                             "$amount",
                             0
                         ]
                     }
                 },
-                totalCredit : {
-                    $sum :{
-                        $cond : [
-                            {$ep :["$type" ,"CREDIT"]},
+                totalCredit: {
+                    $sum: {
+                        $cond: [
+                            { $eq: [ "$type", "CREDIT" ] },
                             "$amount",
                             0
                         ]
@@ -62,12 +95,13 @@ accountSchema.methods.getBalance = async function(){
             }
         },
         {
-            $project :{
+            $project: {
                 _id: 0,
-                balance :{ $subtract : [ "totalCredit", "totalDebit" ]}
+                balance: { $subtract: [ "$totalCredit", "$totalDebit" ] }
             }
         }
     ])
+
 
     if(balanceData.length === 0){
         return 0;
