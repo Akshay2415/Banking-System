@@ -108,41 +108,64 @@ async function createTransaction(req,res){
  * 5.Create transaction (PENDING)
    this step also consist of other 6, 7 , 8 , 9 steps 
 */
+let transaction ;
+try{
+
+
     const session = await mongoose.startSession();    
     session.startTransaction();
     // mongoDB provides transaction fuction that if transaction 
     // is going to happen then it done completely 
     //if an error occur then the whole transaction is going to revert back
 
-    const transaction = await transactionModel.create({
+     transaction = await transactionModel.create([{
         fromAccount,
         toAccount,
         amount,
         idempotencyKey,
         status : "PENDING"
-    }, {session}) //need to pass this parameter in transaction 
+    }],{session}) //need to pass this parameter in transaction 
                   //also and in ledger entry also 
 
-    const debitLedgerEntry = await ledgerModel.create({
+    const debitLedgerEntry = await ledgerModel.create([{
         account : fromAccount,
         amount : amount,
         transaction : transaction._id,
         type : "DEBIT"
-    },{session})
+    }],{session})
 
-    const creditLedgerEntry = await ledgerModel.create({
+    await (()=>{
+        return new Promise ((resolve)=> setTimeout(resolve , 15* 1000));
+    })
+
+    const creditLedgerEntry = await ledgerModel.create([{
         account : toAccount,
         amount : amount,
         transaction : transaction._id,
         type : "CREDIT"
-    },{session})
+    }],{session})
 
-    transaction.status = "COMPLETED";
-    await transaction.save({session})
+    // transaction.status = "COMPLETED";
+    // await transaction.save({session})
+
+    await transactionModel.findOneAndUpdate(
+        {_id : transaction._id},
+        {status : "COMPLETED"},
+        {session}
+    )
 
     await session.commitTransaction();
     session.endSession();
+}catch(err){
 
+
+     return res.status(400).json({
+            message: "Transaction is Pending due to some issue, please retry after sometime",
+        })
+
+
+        
+}
 /* 
 * 10.Send Email notification
 */
